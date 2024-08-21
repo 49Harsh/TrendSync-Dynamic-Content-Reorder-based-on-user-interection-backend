@@ -61,9 +61,7 @@ router.post('/:id/interact', async (req, res) => {
     }
 
     // Recalculate score
-    post.score = post.interactions.views + 
-                 post.interactions.likes * 5 + 
-                 post.interactions.comments * 10;
+    post.score = post.interactions.views + post.interactions.likes * 5 + post.interactions.comments * 10;
 
     await post.save();
     res.json(post);
@@ -81,6 +79,48 @@ router.get('/:id/score', async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
     res.json({ score: post.score });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Create a new comment
+router.post('/:id/comments', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    post.interactions.comments += 1;
+    post.score = post.interactions.views + (post.interactions.likes * 5) + (post.interactions.comments * 10);
+
+    const newComment = {
+      content,
+      createdAt: new Date(),
+    };
+
+    post.comments.push(newComment);
+    await post.save();
+
+    res.status(201).json(newComment);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Get post comments
+router.get('/:id/comments', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    res.json(post.comments);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
